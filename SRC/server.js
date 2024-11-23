@@ -80,6 +80,47 @@ app.post('/api/create-account', (req, res) => {
     });
 });
 
+app.get('/api/surf-locations', (req, res) => {
+    const { country, location } = req.query;
+    let query = `
+        SELECT 
+            SurfLocation.locationName, 
+            SurfLocation.breakType, 
+            SurfLocation.surfScore, 
+            SurfLocation.countryName, 
+            SurfLocation.userId,
+            COUNT(DISTINCT Likes.userId) AS TotalLikes,
+            COUNT(DISTINCT Comments.commentId) AS TotalComments
+        FROM SurfLocation
+        LEFT JOIN Post ON SurfLocation.locationName = Post.locationName
+        LEFT JOIN Likes ON Post.postId = Likes.commentId
+        LEFT JOIN Comments ON Post.postId = Comments.postId
+    `;
+    const filters = [];
+
+    if (country) {
+        filters.push(`SurfLocation.countryName LIKE '%${country}%'`);
+    }
+    if (location) {
+        filters.push(`SurfLocation.locationName LIKE '%${location}%'`);
+    }
+
+    if (filters.length > 0) {
+        query += ` WHERE ${filters.join(' AND ')}`;
+    }
+
+    query += ` GROUP BY SurfLocation.locationName`;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error("Error fetching surf locations:", err);
+            return res.status(500).json({ error: "Failed to fetch surf locations." });
+        }
+        res.json(results);
+    });
+});
+
+
 
 // Start the server
 app.listen(port, () => {

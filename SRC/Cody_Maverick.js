@@ -76,3 +76,66 @@ createButton.addEventListener('click', async () => {
         alert('Failed to create account. Please try again.');
     }
 });
+
+// Event listener for the "Surf Locations" button
+document.getElementById("surf-locations-btn").addEventListener("click", () => {
+    loadSurfLocations();
+});
+
+// Function to load surf locations
+async function loadSurfLocations() {
+    const mainContent = document.getElementById("main-content");
+    mainContent.innerHTML = `
+        <div class="search-bar">
+            <input type="text" id="search-country" placeholder="Search by Country">
+            <input type="text" id="search-location" placeholder="Search by Location">
+            <button id="search-btn">Search</button>
+        </div>
+        <div id="surf-locations" class="tiles-container"></div>
+    `;
+
+    // Fetch and display all surf locations on initial load
+    await fetchAndDisplayLocations();
+
+    // Add search functionality
+    document.getElementById("search-btn").addEventListener("click", async () => {
+        const country = document.getElementById("search-country").value.trim();
+        const location = document.getElementById("search-location").value.trim();
+        await fetchAndDisplayLocations(country, location);
+    });
+}
+
+async function fetchAndDisplayLocations(country = "", location = "") {
+    try {
+        const response = await fetch(
+            `http://localhost:3000/api/surf-locations?country=${country}&location=${location}`
+        );
+        const locations = await response.json();
+
+        const tilesContainer = document.getElementById("surf-locations");
+        tilesContainer.innerHTML = ""; // Clear existing tiles
+
+        if (locations.length === 0) {
+            tilesContainer.innerHTML = `<p>No surf locations found.</p>`;
+            return;
+        }
+
+        // Create tiles for each location
+        locations.forEach(loc => {
+            const tile = document.createElement("div");
+            tile.classList.add("tile");
+            tile.innerHTML = `
+                <h3>${loc.locationName}</h3>
+                <p>Break Type: ${loc.breakType}</p>
+                <p>Surf Score: ${loc.surfScore}</p>
+                <p>Country: ${loc.countryName}</p>
+                <p>Added by User ID: ${loc.userId}</p>
+                <p>Likes: ${loc.TotalLikes || 0}</p>
+                <p>Comments: ${loc.TotalComments || 0}</p>
+            `;
+            tilesContainer.appendChild(tile);
+        });
+    } catch (error) {
+        console.error("Error fetching surf locations:", error);
+    }
+}
