@@ -82,7 +82,6 @@ document.getElementById("surf-locations-btn").addEventListener("click", () => {
     loadSurfLocations();
 });
 
-// Function to load surf locations
 async function loadSurfLocations() {
     const mainContent = document.getElementById("main-content");
     mainContent.innerHTML = `
@@ -105,10 +104,10 @@ async function loadSurfLocations() {
     });
 }
 
-async function fetchAndDisplayLocations(country = "", location = "") {
+async function fetchAndDisplayLocations(country = "", location = "", filterLikes = false) {
     try {
         const response = await fetch(
-            `http://localhost:3000/api/surf-locations?country=${country}&location=${location}`
+            `http://localhost:3000/api/surf-locations?country=${country}&location=${location}&filterLikes=${filterLikes}`
         );
         const locations = await response.json();
 
@@ -133,9 +132,94 @@ async function fetchAndDisplayLocations(country = "", location = "") {
                 <p>Likes: ${loc.TotalLikes || 0}</p>
                 <p>Comments: ${loc.TotalComments || 0}</p>
             `;
+            tile.addEventListener("click", () => loadLocationDetails(loc.locationName));
             tilesContainer.appendChild(tile);
         });
     } catch (error) {
         console.error("Error fetching surf locations:", error);
+    }
+}
+
+async function loadLocationDetails(locationName) {
+    try {
+        const response = await fetch(`http://localhost:3000/api/location-details?locationName=${locationName}`);
+        const data = await response.json();
+
+        const mainContent = document.getElementById("main-content");
+        mainContent.innerHTML = ""; // Clear previous content
+
+        if (data.length === 0) {
+            mainContent.innerHTML = `<p>No data available for this location.</p>`;
+            return;
+        }
+
+        // Extract location details
+        const location = data[0];
+        const posts = data.filter(post => post.postId !== null);
+
+        // Display location details
+        mainContent.innerHTML = `
+            <h2>${location.locationName}</h2>
+            <p>Break Type: ${location.breakType}</p>
+            <p>Surf Score: ${location.surfScore}</p>
+            <p>Country: ${location.countryName}</p>
+            <p>Added by User ID: ${location.userId}</p>
+            <h3>Posts:</h3>
+            <div id="post-tiles" class="tiles-container"></div>
+        `;
+
+        // Display all posts by default
+        const postTiles = document.getElementById("post-tiles");
+        posts.forEach(post => {
+            const tile = document.createElement("div");
+            tile.classList.add("tile");
+            tile.innerHTML = `
+                <h3>Post ID: ${post.postId}</h3>
+                <p>${post.descript}</p>
+                <p>Likes: ${post.TotalLikes || 0}</p>
+                <p>Comments: ${post.TotalComments || 0}</p>
+            `;
+            postTiles.appendChild(tile);
+        });
+
+        // Add a "Top Posts" button
+        const topPostsButton = document.createElement("button");
+        topPostsButton.innerText = "Show Top Posts";
+        topPostsButton.classList.add("top-posts-btn");
+        topPostsButton.addEventListener("click", () => fetchAndDisplayTopPosts(locationName));
+        mainContent.appendChild(topPostsButton);
+    } catch (error) {
+        console.error("Error loading location details:", error);
+    }
+}
+
+
+async function fetchAndDisplayTopPosts(locationName) {
+    try {
+        const response = await fetch(`http://localhost:3000/api/location-top-posts?locationName=${locationName}`);
+        const topPosts = await response.json();
+
+        const postTiles = document.getElementById("post-tiles");
+        postTiles.innerHTML = ""; // Clear existing posts
+
+        if (topPosts.length === 0) {
+            postTiles.innerHTML = `<p>No top posts found for this location.</p>`;
+            return;
+        }
+
+        topPosts.forEach(post => {
+            const tile = document.createElement("div");
+            tile.classList.add("tile");
+            tile.innerHTML = `
+                <h3>Post ID: ${post.postId}</h3>
+                <p>${post.descript}</p>
+                <p>Likes: ${post.TotalLikes || 0}</p>
+                <p>Comments: ${post.TotalComments || 0}</p>
+                <p>Total Interactions: ${post.TotalInteractions || 0}</p>
+            `;
+            postTiles.appendChild(tile);
+        });
+    } catch (error) {
+        console.error("Error fetching top posts:", error);
     }
 }

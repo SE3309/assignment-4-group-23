@@ -126,3 +126,70 @@ app.get('/api/surf-locations', (req, res) => {
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
+
+app.get('/api/location-details', (req, res) => {
+    const { locationName } = req.query;
+    if (!locationName) {
+        return res.status(400).json({ error: "Location name is required." });
+    }
+
+    const query = `
+        SELECT 
+            SurfLocation.locationName, 
+            SurfLocation.breakType, 
+            SurfLocation.surfScore, 
+            SurfLocation.countryName, 
+            SurfLocation.userId,
+            Post.postId, 
+            Post.descript, 
+            COUNT(DISTINCT Likes.userId) AS TotalLikes, 
+            COUNT(DISTINCT Comments.commentId) AS TotalComments
+        FROM SurfLocation
+        LEFT JOIN Post ON SurfLocation.locationName = Post.locationName
+        LEFT JOIN Likes ON Post.postId = Likes.commentId
+        LEFT JOIN Comments ON Post.postId = Comments.postId
+        WHERE SurfLocation.locationName = ?
+        GROUP BY Post.postId, SurfLocation.locationName
+    `;
+
+    db.query(query, [locationName], (err, results) => {
+        if (err) {
+            console.error("Error fetching location details:", err);
+            return res.status(500).json({ error: "Failed to fetch location details." });
+        }
+        res.json(results);
+    });
+});
+
+
+app.get('/api/location-top-posts', (req, res) => {
+    const { locationName } = req.query;
+
+    if (!locationName) {
+        return res.status(400).json({ error: "Location name is required." });
+    }
+
+    const query = `
+        SELECT 
+            Post.postId, 
+            Post.descript, 
+            COUNT(DISTINCT Likes.userId) AS TotalLikes, 
+            COUNT(DISTINCT Comments.commentId) AS TotalComments,
+            (COUNT(DISTINCT Likes.userId) + COUNT(DISTINCT Comments.commentId)) AS TotalInteractions
+        FROM Post
+        LEFT JOIN Likes ON Post.postId = Likes.commentId
+        LEFT JOIN Comments ON Post.postId = Comments.postId
+        WHERE Post.locationName = ?
+        GROUP BY Post.postId
+        ORDER BY TotalInteractions DESC
+        LIMIT 5;
+    `;
+
+    db.query(query, [locationName], (err, results) => {
+        if (err) {
+            console.error("Error fetching top posts:", err);
+            return res.status(500).json({ error: "Failed to fetch top posts." });
+        }
+        res.json(results);
+    });
+});
