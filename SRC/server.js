@@ -193,3 +193,50 @@ app.get('/api/location-top-posts', (req, res) => {
         res.json(results);
     });
 });
+
+app.get('/api/surf-risks', (req, res) => {
+    const query = `
+        SELECT 
+            SurfLocation.locationName, 
+            SurfLocation.breakType, 
+            GROUP_CONCAT(Risks.riskType SEPARATOR ', ') AS Risks
+        FROM SurfLocation
+        LEFT JOIN Risks ON SurfLocation.locationName = Risks.locationName
+        GROUP BY SurfLocation.locationName, SurfLocation.breakType;
+    `;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error("Error fetching surf risks:", err);
+            return res.status(500).json({ error: "Failed to fetch surf risks." });
+        }
+        res.json(results);
+    });
+});
+
+app.post('/api/weather-conditions', (req, res) => {
+    const { locationName, date } = req.body;
+
+    if (!locationName || !date) {
+        return res.status(400).json({ error: "Location name and date are required." });
+    }
+
+    const query = `
+        SELECT 
+            Weather.locationName, 
+            Weather.wTimeStamp, 
+            Weather.waveSize, 
+            Weather.windSpeed, 
+            Weather.precipitation
+        FROM Weather
+        WHERE locationName = ? AND DATE(wTimeStamp) = ?;
+    `;
+
+    db.query(query, [locationName, date], (err, results) => {
+        if (err) {
+            console.error("Error fetching weather conditions:", err);
+            return res.status(500).json({ error: "Failed to fetch weather conditions." });
+        }
+        res.json(results);
+    });
+});

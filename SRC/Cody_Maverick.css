@@ -216,3 +216,35 @@ button:hover {
 .top-posts-btn:hover {
     background-color: #5a3320;
 }
+
+#location-info {
+    margin: 20px 0;
+}
+
+#risks-section, #weather-section {
+    margin: 10px 0;
+}
+
+#weather-form {
+    margin-bottom: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+#weather-form input {
+    padding: 8px;
+    font-size: 14px;
+}
+
+#weather-form button {
+    padding: 8px 12px;
+    background-color: #8b4513;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#weather-form button:hover {
+    background-color: #5a3320;
+}

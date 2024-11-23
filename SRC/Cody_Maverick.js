@@ -159,14 +159,25 @@ async function loadLocationDetails(locationName) {
 
         // Display location details
         mainContent.innerHTML = `
-            <h2>${location.locationName}</h2>
-            <p>Break Type: ${location.breakType}</p>
-            <p>Surf Score: ${location.surfScore}</p>
-            <p>Country: ${location.countryName}</p>
-            <p>Added by User ID: ${location.userId}</p>
+            <h2>${locationName}</h2>
+            <div id="location-info">
+                <h3>Risks:</h3>
+                <div id="risks-section"></div>
+                <h3>Weather Conditions:</h3>
+                <div id="weather-section">
+                    <form id="weather-form">
+                        <input type="date" id="weather-date" required />
+                        <button type="submit">Get Weather</button>
+                    </form>
+                    <div id="weather-results"></div>
+                </div>
+            </div>
             <h3>Posts:</h3>
             <div id="post-tiles" class="tiles-container"></div>
         `;
+
+        // Load Risks
+        await loadSurfRisks(locationName);
 
         // Display all posts by default
         const postTiles = document.getElementById("post-tiles");
@@ -182,6 +193,14 @@ async function loadLocationDetails(locationName) {
             postTiles.appendChild(tile);
         });
 
+        // Handle Weather Form Submission
+        const weatherForm = document.getElementById("weather-form");
+        weatherForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const date = document.getElementById("weather-date").value;
+            await loadWeatherConditions(locationName, date);
+        });
+
         // Add a "Top Posts" button
         const topPostsButton = document.createElement("button");
         topPostsButton.innerText = "Show Top Posts";
@@ -193,6 +212,49 @@ async function loadLocationDetails(locationName) {
     }
 }
 
+async function loadSurfRisks(locationName) {
+    try {
+        const response = await fetch(`http://localhost:3000/api/surf-risks`);
+        const risks = await response.json();
+
+        const risksSection = document.getElementById("risks-section");
+        const locationRisks = risks.find(risk => risk.locationName === locationName);
+
+        if (!locationRisks || !locationRisks.Risks) {
+            risksSection.innerHTML = `<p>No risks associated with this location.</p>`;
+        } else {
+            risksSection.innerHTML = `<p>${locationRisks.Risks}</p>`;
+        }
+    } catch (error) {
+        console.error("Error loading surf risks:", error);
+    }
+}
+
+async function loadWeatherConditions(locationName, date) {
+    try {
+        const response = await fetch(`http://localhost:3000/api/weather-conditions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ locationName, date }),
+        });
+        const weather = await response.json();
+
+        const weatherResults = document.getElementById("weather-results");
+        if (weather.length === 0) {
+            weatherResults.innerHTML = `<p>No weather data available for the selected date.</p>`;
+        } else {
+            const weatherDetails = weather[0];
+            weatherResults.innerHTML = `
+                <p><strong>Date:</strong> ${weatherDetails.wTimeStamp}</p>
+                <p><strong>Wave Size:</strong> ${weatherDetails.waveSize} m</p>
+                <p><strong>Wind Speed:</strong> ${weatherDetails.windSpeed} km/h</p>
+                <p><strong>Precipitation:</strong> ${weatherDetails.precipitation ? "Yes" : "No"}</p>
+            `;
+        }
+    } catch (error) {
+        console.error("Error loading weather conditions:", error);
+    }
+}
 
 async function fetchAndDisplayTopPosts(locationName) {
     try {
