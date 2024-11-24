@@ -50,8 +50,14 @@
             </div>
             <div id="create-account-form" style="display: none;">
                 <h2>Create Account</h2>
-                <input type="text" id="new-username" placeholder="New Username" required>
-                <input type="password" id="new-password" placeholder="New Password" required>
+                <label for="new-username">Username:</label>
+                <input type="text" id="new-username" required />
+            
+                <label for="new-password">Password:</label>
+                <input type="password" id="new-password" required />
+            
+                <label for="new-email">Email:</label> <!-- Add this -->
+                <input type="email" id="new-email" required /> <!-- Email input -->
                 <button id="create-btn">Create Account</button>
                 <p>
                     Already have an account? 

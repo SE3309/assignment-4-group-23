@@ -27,28 +27,30 @@ db.connect(err => {
 
 // API Endpoints
 
-// Login Endpoint
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-        return res.status(400).json({ success: false, message: 'Username and password are required.' });
+        return res.status(400).json({ success: false, message: "Username and password are required." });
     }
 
-    const query = 'SELECT * FROM Users WHERE userName = ? AND psword = ?';
+    const query = `SELECT userId FROM Users WHERE userName = ? AND psword = ?`;
+
     db.query(query, [username, password], (err, results) => {
         if (err) {
-            console.error('Error querying the database:', err);
-            return res.status(500).json({ success: false, message: 'Server error.' });
+            console.error("Error querying database:", err);
+            return res.status(500).json({ success: false, message: "Database query failed." });
         }
 
-        if (results.length > 0) {
-            return res.json({ success: true, message: 'Login successful.' });
-        } else {
-            return res.json({ success: false, message: 'Invalid username or password.' });
+        if (results.length === 0) {
+            return res.status(401).json({ success: false, message: "Invalid username or password." });
         }
+
+        const userId = results[0].userId; // Extract the userId from the query result
+        res.json({ success: true, userId, message: "Login successful" });
     });
 });
+
 
 app.post('/api/create-account', (req, res) => {
     const { username, password, email } = req.body;
@@ -238,5 +240,78 @@ app.post('/api/weather-conditions', (req, res) => {
             return res.status(500).json({ error: "Failed to fetch weather conditions." });
         }
         res.json(results);
+    });
+});
+
+app.post('/api/like-comment', (req, res) => {
+    const { userId, commentId } = req.body;
+
+    if (!userId || !commentId) {
+        return res.status(400).json({ success: false, error: "User ID and Comment ID are required." });
+    }
+
+    // Insert or update the like status in the database
+    const query = `
+        INSERT INTO Likes (userId, commentId, likedStatus)
+        VALUES (?, ?, true)
+        ON DUPLICATE KEY UPDATE likedStatus = true;
+    `;
+
+    db.query(query, [userId, commentId], (err, result) => {
+        if (err) {
+            console.error("Error liking comment:", err);
+            return res.status(500).json({ success: false, error: "Failed to like comment." });
+        }
+        res.json({ success: true, message: "Comment liked successfully." });
+    });
+});
+
+
+app.get('/api/post-comments', (req, res) => {
+    const { postId } = req.query;
+
+    if (!postId) {
+        return res.status(400).json({ error: "Post ID is required." });
+    }
+
+    const query = `
+        SELECT 
+            Comments.commentId,
+            Comments.descript AS commentDescription,
+            Comments.userId,
+            COUNT(Likes.userId) AS TotalLikes
+        FROM Comments
+        LEFT JOIN Likes ON Comments.commentId = Likes.commentId
+        WHERE Comments.postId = ?
+        GROUP BY Comments.commentId;
+    `;
+
+    db.query(query, [postId], (err, results) => {
+        if (err) {
+            console.error("Error fetching post comments:", err);
+            return res.status(500).json({ error: "Failed to fetch comments." });
+        }
+        res.json(results);
+    });
+});
+
+app.post('/api/create-comment', (req, res) => {
+    const { postId, userId, description } = req.body;
+
+    if (!postId || !userId || !description) {
+        return res.status(400).json({ success: false, error: "Post ID, User ID, and description are required." });
+    }
+
+    const query = `
+        INSERT INTO Comments (descript, cTimeStamp, userId, postId)
+        VALUES (?, NOW(), ?, ?);
+    `;
+
+    db.query(query, [description, userId, postId], (err, result) => {
+        if (err) {
+            console.error("Error creating comment:", err);
+            return res.status(500).json({ success: false, error: "Failed to create comment in the database." });
+        }
+        res.json({ success: true, message: "Comment created successfully." });
     });
 });
