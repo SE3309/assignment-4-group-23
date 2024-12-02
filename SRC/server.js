@@ -75,7 +75,7 @@ Note: "2.1" = endpoint #2, query #1
 
 8) Like a Comment (of a Post on a Location)
    - uses: 8.1 (interesting query; ON DUPLICATE KEY UPDATE)
-   - INSERT statement
+   - INSERT and nested UPDATE statement
 
 9) All Comments (and Comment Likes) on a Post
    - uses: 9.1 (interesting query; JOINS, GROUP BY)
